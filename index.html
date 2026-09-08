@@ -9,6 +9,8 @@
   <link rel="manifest" href="data:application/manifest+json,{"name":"日常记账","short_name":"记账","start_url":".","display":"standalone","background_color":"#f3f4f6","theme_color":"#2563eb"}">
   <!-- Chart.js 图表库 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SheetJS Excel 导出库 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     body { background-color: #f3f4f6; color: #333; padding: 12px; padding-bottom: 40px; }
@@ -29,6 +31,11 @@
     
     .btn { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
     .btn:active { background: #1d4ed8; }
+    .btn-secondary { background: #10b981; margin-top: 8px; }
+    .btn-secondary:active { background: #059669; }
+    .btn-outline { background: transparent; color: #4b5563; border: 1px solid #d1d5db; margin-top: 8px; }
+    .btn-group { display: flex; gap: 8px; margin-top: 8px; }
+    .btn-group .btn { flex: 1; }
     
     .summary-box { display: flex; justify-content: space-between; align-items: center; background: #eff6ff; padding: 12px; border-radius: 8px; font-weight: bold; color: #1e40af; margin-bottom: 12px; }
     
@@ -141,6 +148,17 @@
     </div>
   </div>
 
+  <!-- 数据备份与导出 -->
+  <div class="card">
+    <h3>📂 数据管理与导出</h3>
+    <button class="btn btn-secondary" onclick="exportToExcel()">📊 导出 Excel 表格 (.xlsx)</button>
+    <div class="btn-group">
+      <button class="btn btn-outline" onclick="exportJSONBackup()">💾 导出 JSON 备份</button>
+      <button class="btn btn-outline" onclick="document.getElementById('importFileInput').click()">📥 恢复 JSON 备份</button>
+    </div>
+    <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importJSONBackup(event)">
+  </div>
+
   <script>
     // 初始化数据结构
     let gasData = JSON.parse(localStorage.getItem('pwa_gas_data')) || [];
@@ -233,10 +251,8 @@
     }
 
     function renderGas() {
-      // 排序
       gasData.sort((a,b) => new Date(a.date) - new Date(b.date));
       
-      // 历史明细 (倒序显示最新)
       const listEl = document.getElementById('gasHistory');
       listEl.innerHTML = gasData.slice().reverse().map(item => `
         <div class="history-item">
@@ -251,12 +267,10 @@
         </div>
       `).join('');
 
-      // 按年月按汇总
       const monthlyTotals = aggregateByMonth(gasData, 'total');
       const currentMonth = new Date().toISOString().slice(0, 7);
       document.getElementById('gasCurrentMonthTotal').innerText = `$${(monthlyTotals[currentMonth] || 0).toFixed(2)}`;
 
-      // 更新曲线图
       gasChartInst = updateChart(gasChartInst, 'gasChart', '加油月度支出趋势 ($)', monthlyTotals, '#2563eb');
     }
 
@@ -283,7 +297,6 @@
       foodChartInst = updateChart(foodChartInst, 'foodChart', '餐厅月度支出趋势 ($)', monthlyTotals, '#059669');
     }
 
-    // 按“YYYY-MM”聚合每月数据，并补全从首月到当前月间的所有月份
     function aggregateByMonth(dataArray, valKey) {
       if(dataArray.length === 0) return {};
       
@@ -312,7 +325,6 @@
       return resultMap;
     }
 
-    // Chart.js 更新绘制
     function updateChart(chartInst, canvasId, label, monthlyMap, color) {
       const labels = Object.keys(monthlyMap);
       const data = Object.values(monthlyMap);
@@ -347,7 +359,89 @@
       });
     }
 
-    // 简单注册 Service Worker 满足 PWA 离线运行标准
+    // ----------------- 导出 / 备份逻辑 -----------------
+
+    // 导出 Excel (.xlsx)
+    function exportToExcel() {
+      if(gasData.length === 0 && foodData.length === 0) {
+        alert('目前还没有任何记账记录，无法导出！');
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+
+      // 加油工作表
+      if(gasData.length > 0) {
+        const gasRows = gasData.map(item => ({
+          '日期': item.date,
+          '加油站': item.station,
+          '单价': item.price,
+          '加油量(升)': item.liters,
+          '总支出': item.total
+        }));
+        const gasWs = XLSX.utils.json_to_sheet(gasRows);
+        XLSX.utils.book_append_sheet(wb, gasWs, "加油记录");
+      }
+
+      // 餐厅工作表
+      if(foodData.length > 0) {
+        const foodRows = foodData.map(item => ({
+          '日期': item.date,
+          '餐馆名字': item.name,
+          '支出金额': item.amount
+        }));
+        const foodWs = XLSX.utils.json_to_sheet(foodRows);
+        XLSX.utils.book_append_sheet(wb, foodWs, "餐厅支出");
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `日常记账数据_${today}.xlsx`);
+    }
+
+    // 导出 JSON 备份文件
+    function exportJSONBackup() {
+      const backupData = {
+        gas: gasData,
+        food: foodData,
+        exportTime: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `jizhang_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+    }
+
+    // 导入 JSON 备份文件
+    function importJSONBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.gas && imported.food) {
+            if (confirm('导入备份将覆盖当前的数据，确定要继续吗？')) {
+              gasData = imported.gas;
+              foodData = imported.food;
+              localStorage.setItem('pwa_gas_data', JSON.stringify(gasData));
+              localStorage.setItem('pwa_food_data', JSON.stringify(foodData));
+              renderAll();
+              alert('恢复成功！');
+            }
+          } else {
+            alert('无效的备份文件格式！');
+          }
+        } catch (err) {
+          alert('解析备份文件失败！');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = ''; // 重置 file input
+    }
+
+    // Service Worker 离线支持
     if ('serviceWorker' in navigator) {
       const swCode = `
         self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
@@ -359,3 +453,4 @@
   </script>
 </body>
 </html>
+
