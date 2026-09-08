@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日常记账 PWA</title>
+  <!-- PWA 应用配置 -->
+  <meta name="theme-color" content="#2563eb">
+  <link rel="manifest" href="data:application/manifest+json,{"name":"日常记账","short_name":"记账","start_url":".","display":"standalone","background_color":"#f3f4f6","theme_color":"#2563eb"}">
+  <!-- Chart.js 图表库 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: #f3f4f6; color: #333; padding: 12px; padding-bottom: 40px; }
+    .header { text-align: center; margin-bottom: 12px; }
+    .tabs { display: flex; background: #e5e7eb; border-radius: 10px; padding: 4px; margin-bottom: 16px; }
+    .tab-btn { flex: 1; padding: 10px; text-align: center; border: none; background: none; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; color: #4b5563; }
+    .tab-btn.active { background: #2563eb; color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .card { background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 16px; }
+    .card h3 { margin-bottom: 12px; font-size: 16px; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px; }
+    
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 14px; margin-bottom: 4px; color: #4b5563; }
+    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; outline: none; }
+    .form-group input:focus, .form-group select:focus { border-color: #2563eb; }
+    
+    .btn { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    .btn:active { background: #1d4ed8; }
+    
+    .summary-box { display: flex; justify-content: space-between; align-items: center; background: #eff6ff; padding: 12px; border-radius: 8px; font-weight: bold; color: #1e40af; margin-bottom: 12px; }
+    
+    .history-list { max-height: 200px; overflow-y: auto; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+    .history-item .del-btn { color: #ef4444; border: none; background: none; margin-left: 8px; cursor: pointer; }
+    
+    .chart-container { position: relative; height: 220px; width: 100%; }
+  </style>
+</head>
+<body>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('gas')">⛽ 加油记录</button>
+    <button class="tab-btn" onclick="switchTab('food')">🍽️ 餐厅支出</button>
+  </div>
+
+  <!-- 加油 Tab -->
+  <div id="gasTab" class="tab-content active">
+    <!-- 记账表单 -->
+    <div class="card">
+      <h3>记一笔加油</h3>
+      <form id="gasForm">
+        <div class="form-group">
+          <label>日期</label>
+          <input type="date" id="gasDate" required>
+        </div>
+        <div class="form-group">
+          <label>油站名称</label>
+          <select id="gasStation" required>
+            <option value="Costco">Costco</option>
+            <option value="Costco Business">Costco Business</option>
+            <option value="Petro Canada">Petro Canada</option>
+            <option value="Shell">Shell</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>单价 ($/升 或 元/升)</label>
+          <input type="number" step="0.001" id="gasPrice" placeholder="例如: 1.559" required oninput="calcGasTotal()">
+        </div>
+        <div class="form-group">
+          <label>加油量 (升)</label>
+          <input type="number" step="0.01" id="gasLiters" placeholder="例如: 45.5" required oninput="calcGasTotal()">
+        </div>
+        <div class="form-group">
+          <label>总支出</label>
+          <input type="number" step="0.01" id="gasTotal" placeholder="自动计算或手动输入" required>
+        </div>
+        <button type="submit" class="btn">保存记录</button>
+      </form>
+    </div>
+
+    <!-- 月度汇总与图表 -->
+    <div class="card">
+      <h3>月度统计与趋势</h3>
+      <div class="summary-box">
+        <span>本月加油总支出：</span>
+        <span id="gasCurrentMonthTotal">$0.00</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="gasChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 近期明细 -->
+    <div class="card">
+      <h3>历史明细</h3>
+      <div class="history-list" id="gasHistory"></div>
+    </div>
+  </div>
+
+  <!-- 餐厅 Tab -->
+  <div id="foodTab" class="tab-content">
+    <!-- 记账表单 -->
+    <div class="card">
+      <h3>记一笔用餐</h3>
+      <form id="foodForm">
+        <div class="form-group">
+          <label>日期</label>
+          <input type="date" id="foodDate" required>
+        </div>
+        <div class="form-group">
+          <label>餐馆名字</label>
+          <input type="text" id="foodName" placeholder="例如: 某某酒楼" required>
+        </div>
+        <div class="form-group">
+          <label>支出金额</label>
+          <input type="number" step="0.01" id="foodAmount" placeholder="例如: 88.50" required>
+        </div>
+        <button type="submit" class="btn">保存记录</button>
+      </form>
+    </div>
+
+    <!-- 月度汇总与图表 -->
+    <div class="card">
+      <h3>月度统计与趋势</h3>
+      <div class="summary-box">
+        <span>本月餐厅总支出：</span>
+        <span id="foodCurrentMonthTotal">$0.00</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="foodChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 近期明细 -->
+    <div class="card">
+      <h3>历史明细</h3>
+      <div class="history-list" id="foodHistory"></div>
+    </div>
+  </div>
+
+  <script>
+    // 初始化数据结构
+    let gasData = JSON.parse(localStorage.getItem('pwa_gas_data')) || [];
+    let foodData = JSON.parse(localStorage.getItem('pwa_food_data')) || [];
+
+    let gasChartInst = null;
+    let foodChartInst = null;
+
+    // 设置默认日期为今天
+    document.addEventListener("DOMContentLoaded", () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('gasDate').value = today;
+      document.getElementById('foodDate').value = today;
+      renderAll();
+    });
+
+    // 切换 Tab
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      if(tab === 'gas') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('gasTab').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('foodTab').classList.add('active');
+      }
+    }
+
+    // 加油单价与升数联动自动算总价
+    function calcGasTotal() {
+      const price = parseFloat(document.getElementById('gasPrice').value);
+      const liters = parseFloat(document.getElementById('gasLiters').value);
+      if(!isNaN(price) && !isNaN(liters)) {
+        document.getElementById('gasTotal').value = (price * liters).toFixed(2);
+      }
+    }
+
+    // 保存加油记录
+    document.getElementById('gasForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const record = {
+        id: Date.now(),
+        date: document.getElementById('gasDate').value,
+        station: document.getElementById('gasStation').value,
+        price: parseFloat(document.getElementById('gasPrice').value),
+        liters: parseFloat(document.getElementById('gasLiters').value),
+        total: parseFloat(document.getElementById('gasTotal').value)
+      };
+      gasData.push(record);
+      localStorage.setItem('pwa_gas_data', JSON.stringify(gasData));
+      document.getElementById('gasPrice').value = '';
+      document.getElementById('gasLiters').value = '';
+      document.getElementById('gasTotal').value = '';
+      renderAll();
+    });
+
+    // 保存餐厅记录
+    document.getElementById('foodForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const record = {
+        id: Date.now(),
+        date: document.getElementById('foodDate').value,
+        name: document.getElementById('foodName').value,
+        amount: parseFloat(document.getElementById('foodAmount').value)
+      };
+      foodData.push(record);
+      localStorage.setItem('pwa_food_data', JSON.stringify(foodData));
+      document.getElementById('foodName').value = '';
+      document.getElementById('foodAmount').value = '';
+      renderAll();
+    });
+
+    // 删除记录
+    function deleteRecord(type, id) {
+      if(type === 'gas') {
+        gasData = gasData.filter(item => item.id !== id);
+        localStorage.setItem('pwa_gas_data', JSON.stringify(gasData));
+      } else {
+        foodData = foodData.filter(item => item.id !== id);
+        localStorage.setItem('pwa_food_data', JSON.stringify(foodData));
+      }
+      renderAll();
+    }
+
+    // 核心渲染逻辑
+    function renderAll() {
+      renderGas();
+      renderFood();
+    }
+
+    function renderGas() {
+      // 排序
+      gasData.sort((a,b) => new Date(a.date) - new Date(b.date));
+      
+      // 历史明细 (倒序显示最新)
+      const listEl = document.getElementById('gasHistory');
+      listEl.innerHTML = gasData.slice().reverse().map(item => `
+        <div class="history-item">
+          <div>
+            <strong>${item.station}</strong> <small>(${item.date})</small><br>
+            <small>${item.liters}升 @ $${item.price}/L</small>
+          </div>
+          <div>
+            <strong>$${item.total.toFixed(2)}</strong>
+            <button class="del-btn" onclick="deleteRecord('gas', ${item.id})">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      // 按年月按汇总
+      const monthlyTotals = aggregateByMonth(gasData, 'total');
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      document.getElementById('gasCurrentMonthTotal').innerText = `$${(monthlyTotals[currentMonth] || 0).toFixed(2)}`;
+
+      // 更新曲线图
+      gasChartInst = updateChart(gasChartInst, 'gasChart', '加油月度支出趋势 ($)', monthlyTotals, '#2563eb');
+    }
+
+    function renderFood() {
+      foodData.sort((a,b) => new Date(a.date) - new Date(b.date));
+      
+      const listEl = document.getElementById('foodHistory');
+      listEl.innerHTML = foodData.slice().reverse().map(item => `
+        <div class="history-item">
+          <div>
+            <strong>${item.name}</strong> <small>(${item.date})</small>
+          </div>
+          <div>
+            <strong>$${item.amount.toFixed(2)}</strong>
+            <button class="del-btn" onclick="deleteRecord('food', ${item.id})">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      const monthlyTotals = aggregateByMonth(foodData, 'amount');
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      document.getElementById('foodCurrentMonthTotal').innerText = `$${(monthlyTotals[currentMonth] || 0).toFixed(2)}`;
+
+      foodChartInst = updateChart(foodChartInst, 'foodChart', '餐厅月度支出趋势 ($)', monthlyTotals, '#059669');
+    }
+
+    // 按“YYYY-MM”聚合每月数据，并补全从首月到当前月间的所有月份
+    function aggregateByMonth(dataArray, valKey) {
+      if(dataArray.length === 0) return {};
+      
+      const rawMap = {};
+      dataArray.forEach(item => {
+        const ym = item.date.slice(0, 7);
+        rawMap[ym] = (rawMap[ym] || 0) + item[valKey];
+      });
+
+      const months = Object.keys(rawMap).sort();
+      if(months.length === 0) return {};
+
+      const startYM = months[0];
+      const endYM = new Date().toISOString().slice(0, 7);
+
+      const resultMap = {};
+      let [cy, cm] = startYM.split('-').map(Number);
+      const [ey, em] = endYM.split('-').map(Number);
+
+      while (cy < ey || (cy === ey && cm <= em)) {
+        const key = `${cy}-${String(cm).padStart(2, '0')}`;
+        resultMap[key] = rawMap[key] || 0;
+        cm++;
+        if (cm > 12) { cm = 1; cy++; }
+      }
+      return resultMap;
+    }
+
+    // Chart.js 更新绘制
+    function updateChart(chartInst, canvasId, label, monthlyMap, color) {
+      const labels = Object.keys(monthlyMap);
+      const data = Object.values(monthlyMap);
+
+      if (chartInst) {
+        chartInst.destroy();
+      }
+
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: label,
+            data: data,
+            borderColor: color,
+            backgroundColor: color + '20',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    // 简单注册 Service Worker 满足 PWA 离线运行标准
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
+        self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('离线不可用'))));
+      `;
+      const blob = new Blob([swCode], { type: 'text/javascript' });
+      navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+    }
+  </script>
+</body>
+</html>
