@@ -78,7 +78,7 @@
         </div>
         <div class="form-group">
           <label>加油量 (升)</label>
-          <input type="number" step="0.01" id="gasLiters" placeholder="例如: 45.5" required oninput="calcGasTotal()">
+          <input type="number" step="0.001" id="gasLiters" placeholder="例如: 45.5" required oninput="calcGasTotal()">
         </div>
         <div class="form-group">
           <label>总支出</label>
@@ -188,14 +188,14 @@
       }
     }
 
-    // 加油单价与升数联动自动算总价
-    function calcGasTotal() {
-      const price = parseFloat(document.getElementById('gasPrice').value);
-      const liters = parseFloat(document.getElementById('gasLiters').value);
-      if(!isNaN(price) && !isNaN(liters)) {
-        document.getElementById('gasTotal').value = (price * liters).toFixed(2);
-      }
-    }
+    // 加油单价与升数联动自动算总价（保留2位小数）
+function calcGasTotal() {
+  const price = parseFloat(document.getElementById('gasPrice').value);
+  const liters = parseFloat(document.getElementById('gasLiters').value);
+  if(!isNaN(price) && !isNaN(liters)) {
+    document.getElementById('gasTotal').value = (price * liters).toFixed(2);
+  }
+}
 
     // 保存加油记录
     document.getElementById('gasForm').addEventListener('submit', (e) => {
