@@ -31,6 +31,12 @@
     
     .btn { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
     .btn:active { background: #1d4ed8; }
+    .btn-sm {
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: normal;
+      border-radius: 6px;
+    }
     .btn-secondary { background: #10b981; margin-top: 8px; }
     .btn-secondary:active { background: #059669; }
     .btn-outline { background: transparent; color: #4b5563; border: 1px solid #d1d5db; margin-top: 8px; }
@@ -151,14 +157,16 @@
   <!-- 数据备份与导出 -->
   <div class="card">
     <h3>📂 数据管理与导出</h3>
-    <button class="btn btn-secondary" onclick="exportToExcel()">📊 导出 Excel 表格 (.xlsx)</button>
+    <!-- 1. 在 class 里加上 btn-sm -->
+    <button class="btn btn-secondary btn-sm" onclick="exportToExcel()">📊 导出 Excel 表格 (.xlsx)</button>
     <div class="btn-group">
-      <button class="btn btn-outline" onclick="exportJSONBackup()">💾 导出 JSON 备份</button>
-      <button class="btn btn-outline" onclick="document.getElementById('importFileInput').click()">📥 恢复 JSON 备份</button>
+      <!-- 2. 在 class 里加上 btn-sm -->
+      <button class="btn btn-outline btn-sm" onclick="exportJSONBackup()">💾 导出 JSON 备份</button>
+      <!-- 3. 在 class 里加上 btn-sm -->
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFileInput').click()">📥 恢复 JSON 备份</button>
     </div>
     <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importJSONBackup(event)">
   </div>
-
   <script>
     // 初始化数据结构
     let gasData = JSON.parse(localStorage.getItem('pwa_gas_data')) || [];
