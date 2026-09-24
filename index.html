@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>日常记账 PWA</title>
 
-  <!-- PWA 应用配置 -->
+  <!-- PWA 配置 -->
   <meta name="theme-color" content="#2563eb">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" sizes="180x180" href="./icon.png?v=2">
   <link rel="apple-touch-icon-precomposed" href="./icon.png?v=2">
   <link rel="icon" type="image/png" sizes="32x32" href="./icon.png?v=2">
 
-  <!-- Chart.js 图表库 CDN -->
+  <!-- Chart.js 图表 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- SheetJS Excel 导出库 CDN -->
+  <!-- SheetJS Excel 导出 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -22,36 +22,42 @@
     body { background-color: #f3f4f6; color: #333; padding: 12px; padding-bottom: 40px; }
     .header { text-align: center; margin-bottom: 12px; }
     
-    .tabs { display: flex; background: #e5e7eb; border-radius: 10px; padding: 4px; margin-bottom: 16px; }
-    .tab-btn { flex: 1; padding: 10px 4px; text-align: center; border: none; background: none; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; color: #4b5563; transition: all 0.2s; }
+    .tabs { display: flex; background: #e5e7eb; border-radius: 10px; padding: 4px; margin-bottom: 16px; overflow-x: auto; }
+    .tab-btn { flex: 1; min-width: 80px; padding: 10px 6px; border: none; background: none; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; color: #4b5563; white-space: nowrap; text-align: center; }
     .tab-btn.active { background: #2563eb; color: white; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-
+    
     .card { background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 16px; }
     .card h3 { margin-bottom: 12px; font-size: 16px; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px; }
-
+    
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 14px; margin-bottom: 4px; color: #4b5563; }
-    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; outline: none; }
+    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; outline: none; background-color: #fff; }
     .form-group input:focus, .form-group select:focus { border-color: #2563eb; }
-
+    
     .btn { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
     .btn:active { background: #1d4ed8; }
+    
+    .btn-sm {
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: normal;
+      border-radius: 6px;
+    }
 
-    .btn-sm { padding: 8px 12px; font-size: 13px; font-weight: normal; border-radius: 6px; }
     .btn-secondary { background: #10b981; margin-top: 8px; }
     .btn-secondary:active { background: #059669; }
     .btn-outline { background: transparent; color: #4b5563; border: 1px solid #d1d5db; margin-top: 8px; }
     .btn-group { display: flex; gap: 8px; margin-top: 8px; }
     .btn-group .btn { flex: 1; }
-
+    
     .summary-box { display: flex; justify-content: space-between; align-items: center; background: #eff6ff; padding: 12px; border-radius: 8px; font-weight: bold; color: #1e40af; margin-bottom: 12px; }
-
+    
     .history-list { max-height: 200px; overflow-y: auto; }
     .history-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f3f4f6; gap: 8px; font-size: 13px; }
     .history-item > div:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
-    .history-item .del-btn { color: #ef4444; border: none; background: none; margin-left: 4px; cursor: pointer; flex-shrink: 0; font-size: 16px; }
+    .history-item .del-btn { color: #ef4444; border: none; background: none; margin-left: 4px; cursor: pointer; flex-shrink: 0; }
 
     .chart-container { position: relative; height: 220px; width: 100%; }
   </style>
@@ -62,6 +68,7 @@
     <button class="tab-btn active" onclick="switchTab('gas')">⛽ 加油记录</button>
     <button class="tab-btn" onclick="switchTab('food')">🍽️ 餐厅支出</button>
     <button class="tab-btn" onclick="switchTab('coffee')">☕ 咖啡记录</button>
+    <button class="tab-btn" onclick="switchTab('liquor')">🍷 购酒记录</button>
   </div>
 
   <!-- 1. 加油 Tab -->
@@ -75,30 +82,30 @@
         </div>
         <div class="form-group">
           <label>油站名称</label>
-          <select id="gasStation">
-            <option value="Costco">Costco</option>
+          <select id="gasStation" onchange="toggleCustomStation()">
             <option value="Costco Business">Costco Business</option>
+            <option value="Costco Woodbine">Costco Woodbine</option>
             <option value="Shell">Shell</option>
             <option value="Petro-Canada">Petro-Canada</option>
             <option value="Esso">Esso</option>
-            <option value="Other">其它...</option>
+            <option value="custom">其它...</option>
           </select>
         </div>
-        <div class="form-group" id="gasCustomStationGroup" style="display:none;">
-          <label>自定义油站名称</label>
-          <input type="text" id="gasCustomStation" placeholder="请输入油站名称">
+        <div class="form-group" id="customStationGroup" style="display: none;">
+          <label>请输入油站名称</label>
+          <input type="text" id="customStationInput" placeholder="例如: Mobil">
         </div>
         <div class="form-group">
           <label>加油量 (升)</label>
-          <input type="number" step="0.001" id="gasLiters" placeholder="例如: 45.5" required oninput="calcGasTotal()">
+          <input type="number" step="0.001" id="gasLiters" placeholder="例如: 45.500" required oninput="calcGasTotal()">
         </div>
         <div class="form-group">
           <label>单价 ($/升 或 元/升)</label>
           <input type="number" step="0.01" id="gasPrice" placeholder="例如: 1.559" required oninput="calcGasTotal()">
         </div>
         <div class="form-group">
-          <label>总支出</label>
-          <input type="number" step="0.01" id="gasTotal" placeholder="自动计算或手动输入">
+          <label>总支出 ($)</label>
+          <input type="number" step="0.01" id="gasTotal" placeholder="自动计算或手动输入" required>
         </div>
         <button type="submit" class="btn">保存记录</button>
       </form>
@@ -107,7 +114,7 @@
     <div class="card">
       <h3>月度统计与趋势</h3>
       <div class="summary-box">
-        <span>本月加油总支出:</span>
+        <span>本月加油总支出：</span>
         <span id="gasMonthTotal">$0.00</span>
       </div>
       <div class="chart-container">
@@ -135,7 +142,7 @@
           <input type="text" id="foodName" placeholder="例如: 某某酒楼" required>
         </div>
         <div class="form-group">
-          <label>支出金额</label>
+          <label>支出金额 ($)</label>
           <input type="number" step="0.01" id="foodAmount" placeholder="例如: 88.50" required>
         </div>
         <button type="submit" class="btn">保存记录</button>
@@ -145,7 +152,7 @@
     <div class="card">
       <h3>月度统计与趋势</h3>
       <div class="summary-box">
-        <span>本月餐厅总支出:</span>
+        <span>本月餐厅总支出：</span>
         <span id="foodMonthTotal">$0.00</span>
       </div>
       <div class="chart-container">
@@ -170,18 +177,18 @@
         </div>
         <div class="form-group">
           <label>咖啡店名字</label>
-          <select id="coffeeShopSelect" onchange="toggleCustomCoffeeShop()">
-            <option value="Vaughan Mills" selected>Vaughan Mills</option>
+          <select id="coffeeShop" onchange="toggleCustomCoffeeShop()">
+            <option value="Vaughan Mills">Vaughan Mills</option>
             <option value="Markville">Markville</option>
-            <option value="Other">其它...</option>
+            <option value="custom">其它...</option>
           </select>
         </div>
-        <div class="form-group" id="coffeeCustomShopGroup" style="display:none;">
-          <label>自定义咖啡店</label>
-          <input type="text" id="coffeeCustomShop" placeholder="请输入咖啡店名称">
+        <div class="form-group" id="customCoffeeGroup" style="display: none;">
+          <label>请输入咖啡店名称</label>
+          <input type="text" id="customCoffeeInput" placeholder="例如: Balzac's">
         </div>
         <div class="form-group">
-          <label>支出金额</label>
+          <label>支出金额 ($)</label>
           <input type="number" step="0.01" id="coffeeAmount" placeholder="例如: 5.50" required>
         </div>
         <button type="submit" class="btn">保存记录</button>
@@ -191,7 +198,7 @@
     <div class="card">
       <h3>月度统计与趋势</h3>
       <div class="summary-box">
-        <span>本月咖啡总支出:</span>
+        <span>本月咖啡总支出：</span>
         <span id="coffeeMonthTotal">$0.00</span>
       </div>
       <div class="chart-container">
@@ -205,7 +212,53 @@
     </div>
   </div>
 
-  <!-- 数据备份与导出 -->
+  <!-- 4. 购酒 Tab -->
+  <div id="liquorTab" class="tab-content">
+    <div class="card">
+      <h3>记一笔购酒</h3>
+      <form id="liquorForm">
+        <div class="form-group">
+          <label>日期</label>
+          <input type="date" id="liquorDate" required>
+        </div>
+        <div class="form-group">
+          <label>购酒店铺</label>
+          <select id="liquorShop" onchange="toggleCustomLiquorShop()">
+            <option value="Beer Store">Beer Store</option>
+            <option value="LCBO">LCBO</option>
+            <option value="custom">其它...</option>
+          </select>
+        </div>
+        <div class="form-group" id="customLiquorGroup" style="display: none;">
+          <label>请输入店铺名称</label>
+          <input type="text" id="customLiquorInput" placeholder="例如: Wine Rack">
+        </div>
+        <div class="form-group">
+          <label>支出金额 ($)</label>
+          <input type="number" step="0.01" id="liquorAmount" placeholder="例如: 35.80" required>
+        </div>
+        <button type="submit" class="btn">保存记录</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>月度统计与趋势</h3>
+      <div class="summary-box">
+        <span>本月购酒总支出：</span>
+        <span id="liquorMonthTotal">$0.00</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="liquorChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>历史明细</h3>
+      <div class="history-list" id="liquorHistory"></div>
+    </div>
+  </div>
+
+  <!-- 数据管理与导出 -->
   <div class="card">
     <h3>📂 数据管理与导出</h3>
     <button class="btn btn-secondary btn-sm" onclick="exportToExcel()">📊 导出 Excel 表格 (.xlsx)</button>
@@ -217,36 +270,29 @@
   </div>
 
   <script>
-    // 数据结构与存储
+    // 初始化数据结构
     let gasData = JSON.parse(localStorage.getItem('gasData')) || [];
     let foodData = JSON.parse(localStorage.getItem('foodData')) || [];
     let coffeeData = JSON.parse(localStorage.getItem('coffeeData')) || [];
+    let liquorData = JSON.parse(localStorage.getItem('liquorData')) || [];
 
     let gasChartInstance = null;
     let foodChartInstance = null;
     let coffeeChartInstance = null;
+    let liquorChartInstance = null;
 
-    // 默认日期初始化为今天
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('gasDate').value = today;
-    document.getElementById('foodDate').value = today;
-    document.getElementById('coffeeDate').value = today;
-
-    // 自定义油站与咖啡店切换
-    document.getElementById('gasStation').addEventListener('change', function() {
-      document.getElementById('gasCustomStationGroup').style.display = this.value === 'Other' ? 'block' : 'none';
-    });
-
-    function toggleCustomCoffeeShop() {
-      const select = document.getElementById('coffeeShopSelect');
-      document.getElementById('coffeeCustomShopGroup').style.display = select.value === 'Other' ? 'block' : 'none';
-    }
+    // 初始化默认日期为今天
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById('gasDate').value = todayStr;
+    document.getElementById('foodDate').value = todayStr;
+    document.getElementById('coffeeDate').value = todayStr;
+    document.getElementById('liquorDate').value = todayStr;
 
     // 切换 Tab
     function switchTab(tab) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-      
+
       if (tab === 'gas') {
         document.querySelectorAll('.tab-btn')[0].classList.add('active');
         document.getElementById('gasTab').classList.add('active');
@@ -256,209 +302,371 @@
       } else if (tab === 'coffee') {
         document.querySelectorAll('.tab-btn')[2].classList.add('active');
         document.getElementById('coffeeTab').classList.add('active');
+      } else if (tab === 'liquor') {
+        document.querySelectorAll('.tab-btn')[3].classList.add('active');
+        document.getElementById('liquorTab').classList.add('active');
       }
+      renderAll();
     }
 
-    // 计算加油总额
+    // 显示/隐藏自定义店铺输入框
+    function toggleCustomStation() {
+      const select = document.getElementById('gasStation');
+      const customGroup = document.getElementById('customStationGroup');
+      customGroup.style.display = select.value === 'custom' ? 'block' : 'none';
+    }
+
+    function toggleCustomCoffeeShop() {
+      const select = document.getElementById('coffeeShop');
+      const customGroup = document.getElementById('customCoffeeGroup');
+      customGroup.style.display = select.value === 'custom' ? 'block' : 'none';
+    }
+
+    function toggleCustomLiquorShop() {
+      const select = document.getElementById('liquorShop');
+      const customGroup = document.getElementById('customLiquorGroup');
+      customGroup.style.display = select.value === 'custom' ? 'block' : 'none';
+    }
+
+    // 加油自动计算总价
     function calcGasTotal() {
-      const liters = parseFloat(document.getElementById('gasLiters').value) || 0;
-      const price = parseFloat(document.getElementById('gasPrice').value) || 0;
-      if (liters && price) {
-        document.getElementById('gasTotal').value = (liters * price).toFixed(2);
+      const price = parseFloat(document.getElementById('gasPrice').value);
+      const liters = parseFloat(document.getElementById('gasLiters').value);
+      if (!isNaN(price) && !isNaN(liters)) {
+        document.getElementById('gasTotal').value = (price * liters).toFixed(2);
       }
     }
 
-    // 表单提交事件 - 加油
+    // 提交加油记录
     document.getElementById('gasForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      const stationSelect = document.getElementById('gasStation').value;
-      const station = stationSelect === 'Other' ? document.getElementById('gasCustomStation').value : stationSelect;
-      
-      const record = {
+      let station = document.getElementById('gasStation').value;
+      if (station === 'custom') {
+        station = document.getElementById('customStationInput').value.trim() || '未标明油站';
+      }
+
+      const newItem = {
         date: document.getElementById('gasDate').value,
-        station: station || '未知油站',
-        price: parseFloat(document.getElementById('gasPrice').value) || 0,
-        liters: parseFloat(document.getElementById('gasLiters').value) || 0,
-        total: parseFloat(document.getElementById('gasTotal').value) || 0
+        station: station,
+        price: parseFloat(document.getElementById('gasPrice').value),
+        liters: parseFloat(document.getElementById('gasLiters').value),
+        total: parseFloat(document.getElementById('gasTotal').value)
       };
 
-      gasData.push(record);
-      localStorage.setItem('gasData', JSON.stringify(gasData));
+      gasData.push(newItem);
+      saveData();
+      renderAll();
       this.reset();
-      document.getElementById('gasDate').value = today;
-      document.getElementById('gasCustomStationGroup').style.display = 'none';
-      updateAll();
+      document.getElementById('gasDate').value = todayStr;
+      toggleCustomStation();
     });
 
-    // 表单提交事件 - 餐厅
+    // 提交餐厅记录
     document.getElementById('foodForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      const record = {
+      const newItem = {
         date: document.getElementById('foodDate').value,
-        name: document.getElementById('foodName').value || '未命名餐厅',
-        amount: parseFloat(document.getElementById('foodAmount').value) || 0
+        name: document.getElementById('foodName').value.trim(),
+        amount: parseFloat(document.getElementById('foodAmount').value)
       };
 
-      foodData.push(record);
-      localStorage.setItem('foodData', JSON.stringify(foodData));
+      foodData.push(newItem);
+      saveData();
+      renderAll();
       this.reset();
-      document.getElementById('foodDate').value = today;
-      updateAll();
+      document.getElementById('foodDate').value = todayStr;
     });
 
-    // 表单提交事件 - 咖啡
+    // 提交咖啡记录
     document.getElementById('coffeeForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      const selectVal = document.getElementById('coffeeShopSelect').value;
-      const shopName = selectVal === 'Other' ? document.getElementById('coffeeCustomShop').value : selectVal;
+      let shop = document.getElementById('coffeeShop').value;
+      if (shop === 'custom') {
+        shop = document.getElementById('customCoffeeInput').value.trim() || '未标明咖啡店';
+      }
 
-      const record = {
+      const newItem = {
         date: document.getElementById('coffeeDate').value,
-        name: shopName || '未命名咖啡店',
-        amount: parseFloat(document.getElementById('coffeeAmount').value) || 0
+        shop: shop,
+        amount: parseFloat(document.getElementById('coffeeAmount').value)
       };
 
-      coffeeData.push(record);
-      localStorage.setItem('coffeeData', JSON.stringify(coffeeData));
+      coffeeData.push(newItem);
+      saveData();
+      renderAll();
       this.reset();
-      document.getElementById('coffeeDate').value = today;
-      document.getElementById('coffeeCustomShopGroup').style.display = 'none';
-      updateAll();
+      document.getElementById('coffeeDate').value = todayStr;
+      toggleCustomCoffeeShop();
     });
 
-    // 删除记录
-    function deleteRecord(type, index) {
-      if (type === 'gas') {
-        gasData.splice(index, 1);
-        localStorage.setItem('gasData', JSON.stringify(gasData));
-      } else if (type === 'food') {
-        foodData.splice(index, 1);
-        localStorage.setItem('foodData', JSON.stringify(foodData));
-      } else if (type === 'coffee') {
-        coffeeData.splice(index, 1);
-        localStorage.setItem('coffeeData', JSON.stringify(coffeeData));
+    // 提交购酒记录
+    document.getElementById('liquorForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      let shop = document.getElementById('liquorShop').value;
+      if (shop === 'custom') {
+        shop = document.getElementById('customLiquorInput').value.trim() || '未标明店铺';
       }
-      updateAll();
+
+      const newItem = {
+        date: document.getElementById('liquorDate').value,
+        shop: shop,
+        amount: parseFloat(document.getElementById('liquorAmount').value)
+      };
+
+      liquorData.push(newItem);
+      saveData();
+      renderAll();
+      this.reset();
+      document.getElementById('liquorDate').value = todayStr;
+      toggleCustomLiquorShop();
+    });
+
+    // 保存到本地存储
+    function saveData() {
+      localStorage.setItem('gasData', JSON.stringify(gasData));
+      localStorage.setItem('foodData', JSON.stringify(foodData));
+      localStorage.setItem('coffeeData', JSON.stringify(coffeeData));
+      localStorage.setItem('liquorData', JSON.stringify(liquorData));
     }
 
-    // 渲染历史记录与图表统计
-    function updateAll() {
+    // 删除记录
+    function deleteGas(index) {
+      if (confirm('确定删除此条加油记录？')) {
+        gasData.splice(index, 1);
+        saveData();
+        renderAll();
+      }
+    }
+
+    function deleteFood(index) {
+      if (confirm('确定删除此条餐厅支出记录？')) {
+        foodData.splice(index, 1);
+        saveData();
+        renderAll();
+      }
+    }
+
+    function deleteCoffee(index) {
+      if (confirm('确定删除此条咖啡记录？')) {
+        coffeeData.splice(index, 1);
+        saveData();
+        renderAll();
+      }
+    }
+
+    function deleteLiquor(index) {
+      if (confirm('确定删除此条购酒记录？')) {
+        liquorData.splice(index, 1);
+        saveData();
+        renderAll();
+      }
+    }
+
+    // 渲染历史记录与图表
+    function renderAll() {
       renderGas();
       renderFood();
       renderCoffee();
+      renderLiquor();
     }
 
+    // 渲染加油数据
     function renderGas() {
       gasData.sort((a, b) => new Date(b.date) - new Date(a.date));
       const historyEl = document.getElementById('gasHistory');
-      historyEl.innerHTML = gasData.map((item, idx) => `
-        <div class="history-item">
+      historyEl.innerHTML = '';
+
+      const currentMonth = todayStr.substring(0, 7);
+      let monthTotal = 0;
+      const monthlyStats = {};
+
+      gasData.forEach((item, index) => {
+        if (item.date.startsWith(currentMonth)) {
+          monthTotal += item.total;
+        }
+
+        const m = item.date.substring(0, 7);
+        monthlyStats[m] = (monthlyStats[m] || 0) + item.total;
+
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `
           <div>${item.station} (${item.date}) - ${item.liters}升 @ $${item.price.toFixed(2)}</div>
-          <div>
-            <strong>$${item.total.toFixed(2)}</strong>
-            <button class="del-btn" onclick="deleteRecord('gas', ${idx})">×</button>
-          </div>
-        </div>
-      `).join('');
+          <div><strong>$${item.total.toFixed(2)}</strong> <button class="del-btn" onclick="deleteGas(${index})">✕</button></div>
+        `;
+        historyEl.appendChild(div);
+      });
 
-      const monthTotals = getMonthlyTotals(gasData, 'total');
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      document.getElementById('gasMonthTotal').innerText = `$${(monthTotals[currentMonth] || 0).toFixed(2)}`;
-
-      gasChartInstance = renderChart(gasChartInstance, 'gasChart', '加油月度支出趋势 ($)', monthTotals, '#2563eb');
+      document.getElementById('gasMonthTotal').innerText = `$${monthTotal.toFixed(2)}`;
+      renderChart('gasChart', gasChartInstance, monthlyStats, '加油月度支出趋势 ($)', '#2563eb', (instance) => gasChartInstance = instance);
     }
 
+    // 渲染餐厅数据
     function renderFood() {
       foodData.sort((a, b) => new Date(b.date) - new Date(a.date));
       const historyEl = document.getElementById('foodHistory');
-      historyEl.innerHTML = foodData.map((item, idx) => `
-        <div class="history-item">
+      historyEl.innerHTML = '';
+
+      const currentMonth = todayStr.substring(0, 7);
+      let monthTotal = 0;
+      const monthlyStats = {};
+
+      foodData.forEach((item, index) => {
+        if (item.date.startsWith(currentMonth)) {
+          monthTotal += item.amount;
+        }
+
+        const m = item.date.substring(0, 7);
+        monthlyStats[m] = (monthlyStats[m] || 0) + item.amount;
+
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `
           <div>${item.name} (${item.date})</div>
-          <div>
-            <strong>$${item.amount.toFixed(2)}</strong>
-            <button class="del-btn" onclick="deleteRecord('food', ${idx})">×</button>
-          </div>
-        </div>
-      `).join('');
+          <div><strong>$${item.amount.toFixed(2)}</strong> <button class="del-btn" onclick="deleteFood(${index})">✕</button></div>
+        `;
+        historyEl.appendChild(div);
+      });
 
-      const monthTotals = getMonthlyTotals(foodData, 'amount');
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      document.getElementById('foodMonthTotal').innerText = `$${(monthTotals[currentMonth] || 0).toFixed(2)}`;
-
-      foodChartInstance = renderChart(foodChartInstance, 'foodChart', '餐厅月度支出趋势 ($)', monthTotals, '#10b981');
+      document.getElementById('foodMonthTotal').innerText = `$${monthTotal.toFixed(2)}`;
+      renderChart('foodChart', foodChartInstance, monthlyStats, '餐厅月度支出趋势 ($)', '#10b981', (instance) => foodChartInstance = instance);
     }
 
+    // 渲染咖啡数据
     function renderCoffee() {
       coffeeData.sort((a, b) => new Date(b.date) - new Date(a.date));
       const historyEl = document.getElementById('coffeeHistory');
-      historyEl.innerHTML = coffeeData.map((item, idx) => `
-        <div class="history-item">
-          <div>${item.name} (${item.date})</div>
-          <div>
-            <strong>$${item.amount.toFixed(2)}</strong>
-            <button class="del-btn" onclick="deleteRecord('coffee', ${idx})">×</button>
-          </div>
-        </div>
-      `).join('');
+      historyEl.innerHTML = '';
 
-      const monthTotals = getMonthlyTotals(coffeeData, 'amount');
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      document.getElementById('coffeeMonthTotal').innerText = `$${(monthTotals[currentMonth] || 0).toFixed(2)}`;
+      const currentMonth = todayStr.substring(0, 7);
+      let monthTotal = 0;
+      const monthlyStats = {};
 
-      coffeeChartInstance = renderChart(coffeeChartInstance, 'coffeeChart', '咖啡月度支出趋势 ($)', monthTotals, '#f59e0b');
-    }
+      coffeeData.forEach((item, index) => {
+        if (item.date.startsWith(currentMonth)) {
+          monthTotal += item.amount;
+        }
 
-    function getMonthlyTotals(dataArray, amountKey) {
-      const totals = {};
-      dataArray.forEach(item => {
-        const month = item.date.slice(0, 7);
-        totals[month] = (totals[month] || 0) + item[amountKey];
+        const m = item.date.substring(0, 7);
+        monthlyStats[m] = (monthlyStats[m] || 0) + item.amount;
+
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `
+          <div>${item.shop} (${item.date})</div>
+          <div><strong>$${item.amount.toFixed(2)}</strong> <button class="del-btn" onclick="deleteCoffee(${index})">✕</button></div>
+        `;
+        historyEl.appendChild(div);
       });
-      return totals;
+
+      document.getElementById('coffeeMonthTotal').innerText = `$${monthTotal.toFixed(2)}`;
+      renderChart('coffeeChart', coffeeChartInstance, monthlyStats, '咖啡月度支出趋势 ($)', '#d97706', (instance) => coffeeChartInstance = instance);
     }
 
-    function renderChart(instance, elementId, label, monthlyData, color) {
-      const sortedMonths = Object.keys(monthlyData).sort();
-      const values = sortedMonths.map(m => monthlyData[m]);
+    // 渲染购酒数据
+    function renderLiquor() {
+      liquorData.sort((a, b) => new Date(b.date) - new Date(a.date));
+      const historyEl = document.getElementById('liquorHistory');
+      historyEl.innerHTML = '';
 
-      if (instance) instance.destroy();
+      const currentMonth = todayStr.substring(0, 7);
+      let monthTotal = 0;
+      const monthlyStats = {};
 
-      const ctx = document.getElementById(elementId).getContext('2d');
-      return new Chart(ctx, {
+      liquorData.forEach((item, index) => {
+        if (item.date.startsWith(currentMonth)) {
+          monthTotal += item.amount;
+        }
+
+        const m = item.date.substring(0, 7);
+        monthlyStats[m] = (monthlyStats[m] || 0) + item.amount;
+
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `
+          <div>${item.shop} (${item.date})</div>
+          <div><strong>$${item.amount.toFixed(2)}</strong> <button class="del-btn" onclick="deleteLiquor(${index})">✕</button></div>
+        `;
+        historyEl.appendChild(div);
+      });
+
+      document.getElementById('liquorMonthTotal').innerText = `$${monthTotal.toFixed(2)}`;
+      renderChart('liquorChart', liquorChartInstance, monthlyStats, '购酒月度支出趋势 ($)', '#7c3aed', (instance) => liquorChartInstance = instance);
+    }
+
+    // 渲染通用趋势折线图
+    function renderChart(canvasId, chartInstance, monthlyStats, label, color, setChartInstance) {
+      const labels = Object.keys(monthlyStats).sort();
+      const dataValues = labels.map(m => monthlyStats[m]);
+
+      const ctx = document.getElementById(canvasId).getContext('2d');
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      const newChart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: sortedMonths,
+          labels: labels,
           datasets: [{
             label: label,
-            data: values,
+            data: dataValues,
             borderColor: color,
             backgroundColor: color + '22',
             fill: true,
-            tension: 0.3
+            tension: 0.2
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          scales: { y: { beginAtZero: true } }
+          scales: {
+            y: { beginAtZero: true }
+          }
         }
       });
+
+      setChartInstance(newChart);
     }
 
-    // 导出 Excel 表格
+    // 导出 Excel (.xlsx)
     function exportToExcel() {
       const wb = XLSX.utils.book_new();
 
-      const gasWS = XLSX.utils.json_to_sheet(gasData);
+      // 加油工作表
+      const gasWSData = [["日期", "油站名称", "加油量 (升)", "单价 ($)", "总支出 ($)"]];
+      gasData.forEach(item => {
+        gasWSData.push([item.date, item.station, item.liters, item.price, item.total]);
+      });
+      const gasWS = XLSX.utils.aoa_to_sheet(gasWSData);
       XLSX.utils.book_append_sheet(wb, gasWS, "加油记录");
 
-      const foodWS = XLSX.utils.json_to_sheet(foodData);
+      // 餐厅工作表
+      const foodWSData = [["日期", "餐馆名字", "支出金额 ($)"]];
+      foodData.forEach(item => {
+        foodWSData.push([item.date, item.name, item.amount]);
+      });
+      const foodWS = XLSX.utils.aoa_to_sheet(foodWSData);
       XLSX.utils.book_append_sheet(wb, foodWS, "餐厅支出");
 
-      const coffeeWS = XLSX.utils.json_to_sheet(coffeeData);
+      // 咖啡工作表
+      const coffeeWSData = [["日期", "咖啡店名字", "支出金额 ($)"]];
+      coffeeData.forEach(item => {
+        coffeeWSData.push([item.date, item.shop, item.amount]);
+      });
+      const coffeeWS = XLSX.utils.aoa_to_sheet(coffeeWSData);
       XLSX.utils.book_append_sheet(wb, coffeeWS, "咖啡记录");
 
-      XLSX.writeFile(wb, `日常记账_导出_${new Date().toISOString().split('T')[0]}.xlsx`);
+      // 购酒工作表
+      const liquorWSData = [["日期", "店铺名称", "支出金额 ($)"]];
+      liquorData.forEach(item => {
+        liquorWSData.push([item.date, item.shop, item.amount]);
+      });
+      const liquorWS = XLSX.utils.aoa_to_sheet(liquorWSData);
+      XLSX.utils.book_append_sheet(wb, liquorWS, "购酒记录");
+
+      XLSX.writeFile(wb, `日常记账_导出_${todayStr}.xlsx`);
     }
 
     // 导出 JSON 备份
@@ -466,13 +674,16 @@
       const backupData = {
         gasData: gasData,
         foodData: foodData,
-        coffeeData: coffeeData
+        coffeeData: coffeeData,
+        liquorData: liquorData
       };
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `记账数据备份_${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `记账备份_${todayStr}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
     }
 
     // 恢复 JSON 备份
@@ -483,28 +694,27 @@
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
-          const imported = JSON.parse(e.target.result);
-          if (imported.gasData || imported.foodData || imported.coffeeData) {
-            gasData = imported.gasData || [];
-            foodData = imported.foodData || [];
-            coffeeData = imported.coffeeData || [];
-            localStorage.setItem('gasData', JSON.stringify(gasData));
-            localStorage.setItem('foodData', JSON.stringify(foodData));
-            localStorage.setItem('coffeeData', JSON.stringify(coffeeData));
-            updateAll();
-            alert('数据恢复成功！');
+          const importedData = JSON.parse(e.target.result);
+          if (importedData.gasData && importedData.foodData) {
+            gasData = importedData.gasData;
+            foodData = importedData.foodData;
+            coffeeData = importedData.coffeeData || [];
+            liquorData = importedData.liquorData || [];
+            saveData();
+            renderAll();
+            alert("备份数据恢复成功！");
           } else {
-            alert('备份文件格式不正确！');
+            alert("文件格式不正确！");
           }
         } catch (err) {
-          alert('文件解析失败，请检查是否为有效的 JSON 备份文件！');
+          alert("读取备份文件失败，请确保文件是有效的 JSON 文件。");
         }
       };
       reader.readAsText(file);
     }
 
     // 初始化渲染
-    updateAll();
+    renderAll();
   </script>
 </body>
 </html>
