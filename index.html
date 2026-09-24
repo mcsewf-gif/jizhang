@@ -100,17 +100,14 @@
         <div class="form-group">
           <label>油站名称</label>
           <select id="gasStation" onchange="toggleCustomStation()">
-            <option value="Costco Business">Costco Business</option>
-            <option value="Costco Woodbine">Costco Woodbine</option>
-            <option value="Shell">Shell</option>
-            <option value="Petro-Canada">Petro-Canada</option>
-            <option value="Esso">Esso</option>
+            <option value="Costco Business" selected>Costco Business</option>
+            <option value="Costco Harry Walker">Costco Harry Walker</option>
             <option value="custom">其它...</option>
           </select>
         </div>
         <div class="form-group" id="customStationGroup" style="display: none;">
           <label>请输入油站名称</label>
-          <input type="text" id="customStationInput" placeholder="例如: Mobil">
+          <input type="text" id="customStationInput" placeholder="例如: Shell">
         </div>
         <div class="form-group">
           <label>加油量 (升)</label>
@@ -375,6 +372,7 @@
       renderAll();
       this.reset();
       document.getElementById('gasDate').value = todayStr;
+      document.getElementById('gasStation').value = 'Costco Business';
       toggleCustomStation();
     });
 
