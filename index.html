@@ -23,7 +23,7 @@
     .header { text-align: center; margin-bottom: 12px; }
     
     .tabs { display: flex; background: #e5e7eb; border-radius: 10px; padding: 4px; margin-bottom: 16px; overflow-x: auto; }
-    .tab-btn { flex: 1; min-width: 80px; padding: 10px 6px; border: none; background: none; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; color: #4b5563; white-space: nowrap; text-align: center; }
+    .tab-btn { flex: 1; min-width: 60px; padding: 10px 6px; border: none; background: none; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; color: #4b5563; white-space: nowrap; text-align: center; }
     .tab-btn.active { background: #2563eb; color: white; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
@@ -65,10 +65,10 @@
 <body>
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('gas')">⛽ 加油记录</button>
-    <button class="tab-btn" onclick="switchTab('food')">🍽️ 餐厅支出</button>
-    <button class="tab-btn" onclick="switchTab('coffee')">☕ 咖啡记录</button>
-    <button class="tab-btn" onclick="switchTab('liquor')">🍷 购酒记录</button>
+    <button class="tab-btn active" onclick="switchTab('gas')">⛽ 加油</button>
+    <button class="tab-btn" onclick="switchTab('food')">🍽️ 餐馆</button>
+    <button class="tab-btn" onclick="switchTab('coffee')">☕ 咖啡</button>
+    <button class="tab-btn" onclick="switchTab('liquor')">🍷 酒</button>
   </div>
 
   <!-- 1. 加油 Tab -->
@@ -128,7 +128,7 @@
     </div>
   </div>
 
-  <!-- 2. 餐厅 Tab -->
+  <!-- 2. 餐馆 Tab -->
   <div id="foodTab" class="tab-content">
     <div class="card">
       <h3>记一笔用餐</h3>
@@ -152,7 +152,7 @@
     <div class="card">
       <h3>月度统计与趋势</h3>
       <div class="summary-box">
-        <span>本月餐厅总支出：</span>
+        <span>本月餐馆总支出：</span>
         <span id="foodMonthTotal">$0.00</span>
       </div>
       <div class="chart-container">
@@ -212,7 +212,7 @@
     </div>
   </div>
 
-  <!-- 4. 购酒 Tab -->
+  <!-- 4. 酒 Tab -->
   <div id="liquorTab" class="tab-content">
     <div class="card">
       <h3>记一笔购酒</h3>
@@ -361,7 +361,7 @@
       toggleCustomStation();
     });
 
-    // 提交餐厅记录
+    // 提交餐馆记录
     document.getElementById('foodForm').addEventListener('submit', function(e) {
       e.preventDefault();
       const newItem = {
@@ -439,7 +439,7 @@
     }
 
     function deleteFood(index) {
-      if (confirm('确定删除此条餐厅支出记录？')) {
+      if (confirm('确定删除此条餐馆支出记录？')) {
         foodData.splice(index, 1);
         saveData();
         renderAll();
@@ -501,7 +501,7 @@
       renderChart('gasChart', gasChartInstance, monthlyStats, '加油月度支出趋势 ($)', '#2563eb', (instance) => gasChartInstance = instance);
     }
 
-    // 渲染餐厅数据
+    // 渲染餐馆数据
     function renderFood() {
       foodData.sort((a, b) => new Date(b.date) - new Date(a.date));
       const historyEl = document.getElementById('foodHistory');
@@ -529,7 +529,7 @@
       });
 
       document.getElementById('foodMonthTotal').innerText = `$${monthTotal.toFixed(2)}`;
-      renderChart('foodChart', foodChartInstance, monthlyStats, '餐厅月度支出趋势 ($)', '#10b981', (instance) => foodChartInstance = instance);
+      renderChart('foodChart', foodChartInstance, monthlyStats, '餐馆月度支出趋势 ($)', '#10b981', (instance) => foodChartInstance = instance);
     }
 
     // 渲染咖啡数据
@@ -640,15 +640,15 @@
         gasWSData.push([item.date, item.station, item.liters, item.price, item.total]);
       });
       const gasWS = XLSX.utils.aoa_to_sheet(gasWSData);
-      XLSX.utils.book_append_sheet(wb, gasWS, "加油记录");
+      XLSX.utils.book_append_sheet(wb, gasWS, "加油");
 
-      // 餐厅工作表
+      // 餐馆工作表
       const foodWSData = [["日期", "餐馆名字", "支出金额 ($)"]];
       foodData.forEach(item => {
         foodWSData.push([item.date, item.name, item.amount]);
       });
       const foodWS = XLSX.utils.aoa_to_sheet(foodWSData);
-      XLSX.utils.book_append_sheet(wb, foodWS, "餐厅支出");
+      XLSX.utils.book_append_sheet(wb, foodWS, "餐馆");
 
       // 咖啡工作表
       const coffeeWSData = [["日期", "咖啡店名字", "支出金额 ($)"]];
@@ -656,7 +656,7 @@
         coffeeWSData.push([item.date, item.shop, item.amount]);
       });
       const coffeeWS = XLSX.utils.aoa_to_sheet(coffeeWSData);
-      XLSX.utils.book_append_sheet(wb, coffeeWS, "咖啡记录");
+      XLSX.utils.book_append_sheet(wb, coffeeWS, "咖啡");
 
       // 购酒工作表
       const liquorWSData = [["日期", "店铺名称", "支出金额 ($)"]];
@@ -664,7 +664,7 @@
         liquorWSData.push([item.date, item.shop, item.amount]);
       });
       const liquorWS = XLSX.utils.aoa_to_sheet(liquorWSData);
-      XLSX.utils.book_append_sheet(wb, liquorWS, "购酒记录");
+      XLSX.utils.book_append_sheet(wb, liquorWS, "酒");
 
       XLSX.writeFile(wb, `日常记账_导出_${todayStr}.xlsx`);
     }
