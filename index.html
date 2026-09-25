@@ -77,7 +77,8 @@
     .history-item > div:last-child { white-space: nowrap; flex-shrink: 0; }
     .history-item .del-btn { color: #ef4444; border: none; background: none; margin-left: 4px; cursor: pointer; font-size: 12px; }
 
-    .chart-container { position: relative; height: 220px; width: 100%; }
+    .chart-container { position: relative; height: 220px; width: 100%; margin-bottom: 16px; }
+    .chart-container:last-child { margin-bottom: 0; }
   </style>
 </head>
 <body>
@@ -134,6 +135,9 @@
       </div>
       <div class="chart-container">
         <canvas id="gasChart"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="gasPriceChart"></canvas>
       </div>
     </div>
 
@@ -292,6 +296,7 @@
     let liquorData = JSON.parse(localStorage.getItem('liquorData')) || [];
 
     let gasChartInstance = null;
+    let gasPriceChartInstance = null;
     let foodChartInstance = null;
     let coffeeChartInstance = null;
     let liquorChartInstance = null;
@@ -494,7 +499,8 @@
 
       const currentMonth = todayStr.substring(0, 7);
       let monthTotal = 0;
-      const monthlyStats = {};
+      const monthlyTotalStats = {};
+      const monthlyLitersStats = {};
 
       gasData.forEach((item, index) => {
         if (item.date.startsWith(currentMonth)) {
@@ -502,7 +508,8 @@
         }
 
         const m = item.date.substring(0, 7);
-        monthlyStats[m] = (monthlyStats[m] || 0) + item.total;
+        monthlyTotalStats[m] = (monthlyTotalStats[m] || 0) + item.total;
+        monthlyLitersStats[m] = (monthlyLitersStats[m] || 0) + (item.liters || 0);
 
         const div = document.createElement('div');
         div.className = 'history-item';
@@ -513,8 +520,19 @@
         historyEl.appendChild(div);
       });
 
+      // 计算每月平均油价 (总金额 / 总升数)
+      const monthlyAvgPriceStats = {};
+      Object.keys(monthlyTotalStats).forEach(m => {
+        if (monthlyLitersStats[m] > 0) {
+          monthlyAvgPriceStats[m] = (monthlyTotalStats[m] / monthlyLitersStats[m]).toFixed(3);
+        } else {
+          monthlyAvgPriceStats[m] = 0;
+        }
+      });
+
       document.getElementById('gasMonthTotal').innerText = `$${monthTotal.toFixed(2)}`;
-      renderChart('gasChart', gasChartInstance, monthlyStats, '加油月度支出趋势 ($)', '#2563eb', (instance) => gasChartInstance = instance);
+      renderChart('gasChart', gasChartInstance, monthlyTotalStats, '加油月度支出趋势 ($)', '#2563eb', (instance) => gasChartInstance = instance);
+      renderChart('gasPriceChart', gasPriceChartInstance, monthlyAvgPriceStats, '月度平均油价趋势 ($/升)', '#0284c7', (instance) => gasPriceChartInstance = instance);
     }
 
     // 渲染餐馆数据
@@ -734,4 +752,3 @@
   </script>
 </body>
 </html>
-
